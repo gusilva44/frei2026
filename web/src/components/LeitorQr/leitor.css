@@ -68,7 +68,9 @@
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
 }
 
 .leitor-upload:hover {
@@ -252,6 +254,10 @@
   margin-bottom: 10px;
 }
 
+.leitor-setores-rotulo-salas {
+  margin-top: 14px;
+}
+
 .leitor-setores-botoes {
   display: flex;
   flex-wrap: wrap;
@@ -266,7 +272,10 @@
   padding: 8px 18px;
   font-size: 13px;
   font-weight: bold;
-  transition: background-color 0.2s, color 0.2s, transform 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    transform 0.2s;
 }
 
 .leitor-setores-botoes button:hover {

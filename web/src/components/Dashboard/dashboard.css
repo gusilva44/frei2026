@@ -15,7 +15,9 @@
   border-radius: var(--raio);
   padding: 16px 18px;
   box-shadow: var(--sombra);
-  transition: transform 0.25s, box-shadow 0.25s;
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s;
 }
 
 .dashboard-cartao:hover {
@@ -322,4 +324,50 @@
 
 .dashboard-mini-cartoes strong {
   color: var(--azul);
+}
+
+/* Resumo por andar e exportação */
+.dashboard-exportar {
+  margin-left: auto;
+}
+
+.dashboard-andares {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-andar {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) auto auto 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.dashboard-andar-nome {
+  color: var(--azul);
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-andar-salas {
+  color: var(--texto-claro);
+}
+
+.dashboard-andar-numero {
+  font-weight: bold;
+  color: var(--azul);
+}
+
+@media (max-width: 560px) {
+  .dashboard-andar {
+    grid-template-columns: minmax(0, 120px) auto auto;
+  }
+
+  .dashboard-andar .dashboard-barra-trilha {
+    grid-column: 1 / -1;
+  }
 }

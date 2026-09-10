@@ -190,7 +190,7 @@ entre instâncias.
 - **Validação de entrada** com `zod` em todo body/params/query antes de chegar ao
   controller — reaproveita as mesmas regras hoje embutidas em `apiFeira.ts`
   (nome 3–100 caracteres, e-mail via regex, CPF com dígito verificador, telefone
-  10–11 dígitos, código QR 5–120 caracteres).
+  10–11 dígitos, código QR 1–120 caracteres).
 - **Prepared statements** (`mysql2` com `?` bind) em 100% das queries — nunca
   concatenar valor de usuário em SQL.
 - **Helmet** para cabeçalhos HTTP seguros e **CORS** restrito ao(s) domínio(s) do

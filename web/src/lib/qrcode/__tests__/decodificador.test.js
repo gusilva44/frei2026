@@ -91,7 +91,9 @@ describe("decodificador de matriz", () => {
 
   it("le todos os niveis de correcao", () => {
     ["L", "M", "Q", "H"].forEach((nivel) => {
-      const resultado = decodificarMatriz(gerarMatriz("VISITANTE-0001", { errorCorrectionLevel: nivel }));
+      const resultado = decodificarMatriz(
+        gerarMatriz("VISITANTE-0001", { errorCorrectionLevel: nivel }),
+      );
       expect(resultado.texto).toBe("VISITANTE-0001");
       expect(resultado.nivel).toBe(nivel);
     });
@@ -102,6 +104,13 @@ describe("decodificador de matriz", () => {
     const resultado = decodificarMatriz(gerarMatriz(texto, { errorCorrectionLevel: "Q" }));
     expect(resultado.texto).toBe(texto);
     expect(resultado.versao).toBeGreaterThan(6);
+  });
+
+  it("le um QR Code com 1500+ caracteres de texto", () => {
+    const texto = "CREDENCIAL-FEIRA-2026-FRANCISCO-JOSE-DA-SILVA-123456789-".repeat(28);
+    expect(texto.length).toBeGreaterThan(1500);
+    const resultado = decodificarMatriz(gerarMatriz(texto, { errorCorrectionLevel: "M" }));
+    expect(resultado.texto).toBe(texto);
   });
 });
 
@@ -118,7 +127,12 @@ describe("correcao Reed-Solomon", () => {
 
   it("recusa blocos com erros acima do limite", () => {
     const bloco = new Array(26).fill(0);
-    expect(() => corrigirBloco(bloco.map((_, i) => (i * 7) % 256), 10)).toThrow();
+    expect(() =>
+      corrigirBloco(
+        bloco.map((_, i) => (i * 7) % 256),
+        10,
+      ),
+    ).toThrow();
   });
 });
 
