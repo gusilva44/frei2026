@@ -21,22 +21,45 @@ function LeitorQr() {
   const ultimoCodigoRef = useRef("");
 
   const [setorAtivo, setSetorAtivo] = useState("");
+  const [andarAtivo, setAndarAtivo] = useState("");
   const [cameraLigada, setCameraLigada] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [aviso, setAviso] = useState("");
   const [historico, setHistorico] = useState([]);
   const [ultimaLeitura, setUltimaLeitura] = useState(null);
 
+  /* Andares únicos na ordem da API (Área Externa, Pátio, 1º/2º/3º Andar) */
+  const andaresDoEvento = useMemo(() => {
+    const vistos = [];
+    setores.forEach((setor) => {
+      if (!vistos.includes(setor.andar)) vistos.push(setor.andar);
+    });
+    return vistos;
+  }, [setores]);
+
+  /* Salas do andar selecionado */
+  const salasDoAndar = useMemo(
+    () => (andarAtivo ? setores.filter((setor) => setor.andar === andarAtivo) : []),
+    [setores, andarAtivo],
+  );
+
   const totalNoSetor = useMemo(
     () => presencas.filter((presenca) => presenca.setorId === setorAtivo).length,
     [presencas, setorAtivo],
   );
 
-  /* Os setores vêm da API de forma assíncrona; assim que carregarem, seleciona o
-   * primeiro como padrão (se nenhum já tiver sido escolhido). */
+  /* Assim que os setores carregam, seleciona o primeiro andar e a primeira sala. */
   useEffect(() => {
-    if (!setorAtivo && setores.length > 0) setSetorAtivo(setores[0].id);
-  }, [setores, setorAtivo]);
+    if (!andarAtivo && andaresDoEvento.length > 0) setAndarAtivo(andaresDoEvento[0]);
+  }, [andarAtivo, andaresDoEvento]);
+
+  /* Ao trocar de andar, mantém a sala atual se ela pertencer ao andar, senão escolhe a primeira. */
+  useEffect(() => {
+    if (salasDoAndar.length === 0) return;
+    setSetorAtivo((atual) =>
+      salasDoAndar.some((s) => s.id === atual) ? atual : salasDoAndar[0].id,
+    );
+  }, [salasDoAndar]);
 
   async function registrarLeitura(resultado) {
     if (resultado.texto === ultimoCodigoRef.current) return;
@@ -50,7 +73,7 @@ function LeitorQr() {
       retorno = await registrarPresenca(resultado.texto, setorAtivo);
     } catch (erro) {
       setMensagem("");
-      setAviso(erro.message || "Não foi possível registrar a presença no banco.");
+      setAviso(`Erro ao registrar: ${erro.message || "verifique sua conexão com a API."}`);
       return;
     }
     const leitura = {
@@ -69,7 +92,9 @@ function LeitorQr() {
       setMensagem(`Presença registrada: ${retorno.visitante.nome}`);
       setAviso("");
     } else if (retorno.status === "repetido") {
-      setMensagem(`${retorno.visitante.nome} já estava registrado em ${nomeDoSetor(setores, setorAtivo)}.`);
+      setMensagem(
+        `${retorno.visitante.nome} já estava registrado em ${nomeDoSetor(setores, setorAtivo)}.`,
+      );
       setAviso("");
     } else {
       setMensagem("");
@@ -183,21 +208,39 @@ function LeitorQr() {
   return (
     <div className="leitor">
       <div className="leitor-setores">
-        <span className="leitor-setores-rotulo">Turma / setor de atração</span>
+        <span className="leitor-setores-rotulo">Andar do evento</span>
         <div className="leitor-setores-botoes">
-          {setores.map((setor) => (
+          {andaresDoEvento.map((andar) => {
+            const salasNoAndar = setores.filter((setor) => setor.andar === andar).length;
+            return (
+              <button
+                key={andar}
+                className={andar === andarAtivo ? "leitor-setor ativo" : "leitor-setor"}
+                onClick={() => setAndarAtivo(andar)}
+              >
+                {andar}
+                <small>{salasNoAndar} sala(s)</small>
+              </button>
+            );
+          })}
+        </div>
+
+        <span className="leitor-setores-rotulo leitor-setores-rotulo-salas">Sala de atração</span>
+        <div className="leitor-setores-botoes">
+          {salasDoAndar.map((setor) => (
             <button
               key={setor.id}
               className={setor.id === setorAtivo ? "leitor-setor ativo" : "leitor-setor"}
               onClick={() => setSetorAtivo(setor.id)}
             >
+              {setor.local ? `${setor.local} · ` : ""}
               {setor.nome}
-              <small>{setor.andar}</small>
             </button>
           ))}
         </div>
         <p className="leitor-setores-total">
-          {totalNoSetor} presença(s) registrada(s) em <strong>{nomeDoSetor(setores, setorAtivo)}</strong>
+          {totalNoSetor} presença(s) registrada(s) em{" "}
+          <strong>{nomeDoSetor(setores, setorAtivo)}</strong>
         </p>
       </div>
 
@@ -280,7 +323,8 @@ function LeitorQr() {
             </div>
           ) : (
             <p className="leitor-vazio">
-              Escolha a turma, aponte um QR Code para a câmera ou envie uma imagem para começar.
+              Escolha o andar e a sala, aponte um QR Code para a câmera ou envie uma imagem para
+              começar.
             </p>
           )}
 
@@ -295,7 +339,9 @@ function LeitorQr() {
                   <span className="leitor-historico-texto">
                     {leitura.visitante ? leitura.visitante.nome : leitura.texto}
                   </span>
-                  <span className="leitor-historico-setor">{nomeDoSetor(setores, leitura.setor)}</span>
+                  <span className="leitor-historico-setor">
+                    {nomeDoSetor(setores, leitura.setor)}
+                  </span>
                   <span
                     className={
                       leitura.status === "registrado"

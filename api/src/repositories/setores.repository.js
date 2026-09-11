@@ -2,7 +2,7 @@ import { pool } from "../config/database.js";
 
 export async function listarTodos() {
   const [linhas] = await pool.execute(
-    `SELECT id, nome, andar, cor, ordem FROM setores ORDER BY ordem ASC`,
+    `SELECT id, nome, local, andar, cor, ordem FROM setores ORDER BY ordem ASC`,
   );
   return linhas;
 }

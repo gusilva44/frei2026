@@ -68,6 +68,7 @@ export async function porSetor() {
     return {
       id: setor.id,
       nome: setor.nome,
+      local: setor.local,
       andar: setor.andar,
       total: doSetor.length,
       masculino: doSetor.filter((item) => item.visitante.genero === "Masculino").length,

@@ -34,6 +34,7 @@ export function setorParaCliente(linha) {
   return {
     id: linha.id,
     nome: linha.nome,
+    local: linha.local,
     andar: linha.andar,
     cor: linha.cor,
   };

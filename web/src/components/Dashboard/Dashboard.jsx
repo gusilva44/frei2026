@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useVisitantes } from "../../utils/VisitantesContext";
 import { generos, vinculos } from "../../data/setores";
+import { baixarXls } from "../../utils/exportarXls";
 import "./dashboard.css";
 
 function porcentagem(parte, total) {
@@ -58,8 +59,7 @@ function Dashboard() {
   const [filtroVinculo, setFiltroVinculo] = useState("Todos");
   const [filtroGenero, setFiltroGenero] = useState("Todos");
   const [porGenero, setPorGenero] = useState(false);
-  const [filtroColaborador, setFiltroColaborador] =
-  useState("Todos");
+  const [filtroColaborador, setFiltroColaborador] = useState("Todos");
 
   const visitantesPorId = useMemo(() => {
     const mapa = new Map();
@@ -68,41 +68,25 @@ function Dashboard() {
   }, [visitantes]);
 
   /* Aplica os filtros de vínculo e gênero a inscritos e presenças */
-const inscritosFiltrados = useMemo(
-  () =>
-    visitantes.filter((visitante) => {
-      const correspondeVinculo =
-        filtroVinculo === "Todos" ||
-        visitante.vinculo === filtroVinculo;
+  const inscritosFiltrados = useMemo(
+    () =>
+      visitantes.filter((visitante) => {
+        const correspondeVinculo = filtroVinculo === "Todos" || visitante.vinculo === filtroVinculo;
 
-      const correspondeGenero =
-        filtroGenero === "Todos" ||
-        visitante.genero === filtroGenero;
+        const correspondeGenero = filtroGenero === "Todos" || visitante.genero === filtroGenero;
 
-      const correspondeColaborador =
-        filtroColaborador === "Todos" ||
-        (filtroColaborador === "Sim" &&
-          visitante.vinculo === "Aluno atual" &&
-          visitante.participaComoColaborador === true) ||
-        (filtroColaborador === "Não" &&
-          !(
+        const correspondeColaborador =
+          filtroColaborador === "Todos" ||
+          (filtroColaborador === "Sim" &&
             visitante.vinculo === "Aluno atual" &&
-            visitante.participaComoColaborador === true
-          ));
+            visitante.participaComoColaborador === true) ||
+          (filtroColaborador === "Não" &&
+            !(visitante.vinculo === "Aluno atual" && visitante.participaComoColaborador === true));
 
-      return (
-        correspondeVinculo &&
-        correspondeGenero &&
-        correspondeColaborador
-      );
-    }),
-  [
-    visitantes,
-    filtroVinculo,
-    filtroGenero,
-    filtroColaborador,
-  ],
-);
+        return correspondeVinculo && correspondeGenero && correspondeColaborador;
+      }),
+    [visitantes, filtroVinculo, filtroGenero, filtroColaborador],
+  );
 
   const presencasFiltradas = useMemo(
     () =>
@@ -143,6 +127,31 @@ const inscritosFiltrados = useMemo(
   const maiorSetor = Math.max(1, ...linhasSetores.map((linha) => linha.total));
   const setorLider = [...linhasSetores].sort((a, b) => b.total - a.total)[0];
 
+  /* Agrega as salas por andar: quantidade de salas e de pessoas em cada andar */
+  const linhasPorAndar = useMemo(() => {
+    const mapa = new Map();
+    linhasSetores.forEach((linha) => {
+      const chave = linha.andar || "Sem andar";
+      if (!mapa.has(chave)) {
+        mapa.set(chave, {
+          andar: chave,
+          salas: 0,
+          pessoas: 0,
+          Masculino: 0,
+          Feminino: 0,
+          Outro: 0,
+        });
+      }
+      const entrada = mapa.get(chave);
+      entrada.salas += 1;
+      entrada.pessoas += linha.total;
+      entrada.Masculino += linha.Masculino;
+      entrada.Feminino += linha.Feminino;
+      entrada.Outro += linha.Outro;
+    });
+    return [...mapa.values()];
+  }, [linhasSetores]);
+
   const generosContagem = generos.map((genero) => ({
     genero,
     valor: inscritosFiltrados.filter((visitante) =>
@@ -156,13 +165,10 @@ const inscritosFiltrados = useMemo(
   const exAlunos = inscritosFiltrados.filter((v) => v.vinculo === "Ex-aluno").length;
 
   const colaboradores = inscritosFiltrados.filter(
-  (v) =>
-    v.vinculo === "Aluno atual" &&
-    v.participaComoColaborador === true
-).length;
+    (v) => v.vinculo === "Aluno atual" && v.participaComoColaborador === true,
+  ).length;
 
-  const alunosNaoColaboradores =
-    alunosAtuais - colaboradores;
+  const alunosNaoColaboradores = alunosAtuais - colaboradores;
 
   function ranking(campo, limite = 6) {
     const mapa = {};
@@ -179,6 +185,88 @@ const inscritosFiltrados = useMemo(
   const listaCanais = ranking("comoSoube");
   const maiorCurso = listaCursos[0]?.[1] || 1;
   const maiorCanal = listaCanais[0]?.[1] || 1;
+
+  function exportar() {
+    const planilhas = [
+      {
+        titulo: "Resumo",
+        cabecalho: true,
+        linhas: [
+          ["Indicador", "Valor"],
+          ["Inscritos", totalInscritos],
+          ["Presenças registradas", totalPresencas],
+          ["Visitantes presentes", visitantesPresentes],
+          ["Comparecimento (%)", porcentagem(visitantesPresentes, totalInscritos)],
+          ["Salas monitoradas", linhasSetores.length],
+          [
+            "Salas por visitante",
+            visitantesPresentes ? (totalPresencas / visitantesPresentes).toFixed(1) : 0,
+          ],
+          ["Colaboradores", colaboradores],
+          ["Andares acompanhados", linhasPorAndar.length],
+        ],
+      },
+      {
+        titulo: "Salas por andar",
+        cabecalho: true,
+        linhas: [
+          ["Andar", "Salas", "Pessoas", "Homens", "Mulheres", "Outros"],
+          ...linhasPorAndar.map((andar) => [
+            andar.andar,
+            andar.salas,
+            andar.pessoas,
+            andar.Masculino,
+            andar.Feminino,
+            andar.Outro,
+          ]),
+        ],
+      },
+      {
+        titulo: "Detalhamento por sala",
+        cabecalho: true,
+        linhas: [
+          [
+            "Andar",
+            "Sala",
+            "Local",
+            "Total",
+            "Homens",
+            "Mulheres",
+            "Outros",
+            "Alunos atuais",
+            "Ex-alunos",
+            "% do público",
+          ],
+          ...linhasSetores.map((linha) => [
+            linha.andar,
+            linha.nome,
+            linha.local || "",
+            linha.total,
+            linha.Masculino,
+            linha.Feminino,
+            linha.Outro,
+            linha.alunosAtuais,
+            linha.exAlunos,
+            porcentagem(linha.total, totalPresencas),
+          ]),
+        ],
+      },
+      {
+        titulo: "Cursos e canais",
+        cabecalho: true,
+        linhas: [
+          ["Cursos mais procurados", "Inscrições", "Canal de divulgação", "Inscrições"],
+          ...listaCursos.map(([curso, quantidade], indice) => [
+            curso,
+            quantidade,
+            listaCanais[indice]?.[0] || "",
+            listaCanais[indice]?.[1] || 0,
+          ]),
+        ],
+      },
+    ];
+    baixarXls(`dashboard-feira-2026-${new Date().toISOString().slice(0, 10)}`, planilhas);
+  }
 
   return (
     <div className="dashboard">
@@ -216,16 +304,12 @@ const inscritosFiltrados = useMemo(
         </div>
 
         <div className="dashboard-filtro">
-          <label htmlFor="filtro-colaborador">
-            Participação como colaborador
-          </label>
+          <label htmlFor="filtro-colaborador">Participação como colaborador</label>
 
           <select
             id="filtro-colaborador"
             value={filtroColaborador}
-            onChange={(evento) =>
-              setFiltroColaborador(evento.target.value)
-            }
+            onChange={(evento) => setFiltroColaborador(evento.target.value)}
           >
             <option value="Todos">Todos</option>
             <option value="Sim">Colaboradores</option>
@@ -241,6 +325,10 @@ const inscritosFiltrados = useMemo(
           />
           Ver presença separada por gênero
         </label>
+
+        <button className="botao-amarelo dashboard-exportar" onClick={exportar} type="button">
+          Exportar XLS
+        </button>
       </div>
 
       <div className="dashboard-cartoes">
@@ -252,7 +340,7 @@ const inscritosFiltrados = useMemo(
         <Kpi
           rotulo="Presenças registradas"
           valor={totalPresencas}
-          detalhe={`${linhasSetores.length} setores monitorados`}
+          detalhe={`${linhasSetores.length} salas monitoradas`}
           destaque
         />
         <Kpi
@@ -261,9 +349,9 @@ const inscritosFiltrados = useMemo(
           detalhe={`${visitantesPresentes} de ${totalInscritos} inscritos`}
         />
         <Kpi
-          rotulo="Setores por visitante"
+          rotulo="Salas por visitante"
           valor={visitantesPresentes ? (totalPresencas / visitantesPresentes).toFixed(1) : "0,0"}
-          detalhe={setorLider?.total ? `Líder: ${setorLider.nome}` : "Sem leituras ainda"}
+          detalhe={setorLider?.total ? `Sala líder: ${setorLider.nome}` : "Sem leituras ainda"}
           destaque
         />
         <Kpi
@@ -280,9 +368,37 @@ const inscritosFiltrados = useMemo(
 
       <div className="dashboard-bloco dashboard-bloco-largo">
         <div className="dashboard-bloco-topo">
-          <h3 className="dashboard-bloco-titulo">Presença por turma / setor de atração</h3>
+          <h3 className="dashboard-bloco-titulo">Resumo por andar</h3>
           <span className="dashboard-bloco-legenda">
-            {porGenero ? "Distribuição por gênero" : "Total de pessoas por setor"}
+            Salas monitoradas e pessoas registradas em cada andar
+          </span>
+        </div>
+        {linhasPorAndar.length === 0 ? (
+          <p className="admin-vazio">Nenhum dado para exibir ainda.</p>
+        ) : (
+          <ul className="dashboard-andares">
+            {linhasPorAndar.map((andar) => (
+              <li key={andar.andar} className="dashboard-andar">
+                <span className="dashboard-andar-nome">{andar.andar}</span>
+                <span className="dashboard-andar-salas">{andar.salas} sala(s)</span>
+                <span className="dashboard-andar-numero">{andar.pessoas}</span>
+                <span className="dashboard-barra-trilha">
+                  <span
+                    className="dashboard-barra-preenchida"
+                    style={{ width: `${porcentagem(andar.pessoas, totalPresencas)}%` }}
+                  />
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="dashboard-bloco dashboard-bloco-largo">
+        <div className="dashboard-bloco-topo">
+          <h3 className="dashboard-bloco-titulo">Presença por sala / atração</h3>
+          <span className="dashboard-bloco-legenda">
+            {porGenero ? "Distribuição por gênero" : "Total de pessoas por sala"}
           </span>
         </div>
 
@@ -338,7 +454,7 @@ const inscritosFiltrados = useMemo(
           <table className="admin-tabela dashboard-tabela">
             <thead>
               <tr>
-                <th>Setor</th>
+                <th>Sala</th>
                 <th>Total</th>
                 <th>Homens</th>
                 <th>Mulheres</th>
@@ -408,10 +524,7 @@ const inscritosFiltrados = useMemo(
             </span>
 
             <span>
-              <strong>
-                {totalInscritos - alunosAtuais - exAlunos}
-              </strong>{" "}
-              público externo
+              <strong>{totalInscritos - alunosAtuais - exAlunos}</strong> público externo
             </span>
           </div>
         </div>
