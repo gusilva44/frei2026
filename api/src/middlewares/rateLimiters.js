@@ -12,7 +12,7 @@ function respostaLimite(mensagem) {
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 5,
+  limit: 50,
   standardHeaders: true,
   legacyHeaders: false,
   handler: respostaLimite("Muitas tentativas. Aguarde alguns minutos e tente novamente."),
@@ -35,8 +35,8 @@ export const publicReadLimiter = rateLimit({
 });
 
 export const authenticatedLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 300,
+  windowMs: 60 * 60 * 1000,
+  limit: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.usuario?.id ?? req.ip,
