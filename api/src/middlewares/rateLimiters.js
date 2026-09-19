@@ -11,32 +11,32 @@ function respostaLimite(mensagem) {
 }
 
 export const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 1000,
+  windowMs: 5 * 60 * 1000,
+  limit: 10000,
   standardHeaders: true,
   legacyHeaders: false,
   handler: respostaLimite("Muitas tentativas. Aguarde alguns minutos e tente novamente."),
 });
 
 export const publicWriteLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  limit: 1000,
+  windowMs: 5 * 60 * 1000,
+  limit: 10000,
   standardHeaders: true,
   legacyHeaders: false,
   handler: respostaLimite("Muitas inscrições enviadas deste endereço. Aguarde alguns minutos."),
 });
 
 export const publicReadLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 1000,
+  windowMs: 5 * 60 * 1000,
+  limit: 10000,
   standardHeaders: true,
   legacyHeaders: false,
   handler: respostaLimite("Muitas requisições. Aguarde um minuto e tente novamente."),
 });
 
 export const authenticatedLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  limit: 1000,
+  windowMs: 5 * 60 * 1000,
+  limit: 10000,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.usuario?.id ?? req.ip,
