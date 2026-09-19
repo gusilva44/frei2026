@@ -12,7 +12,7 @@ function respostaLimite(mensagem) {
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 50,
+  limit: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   handler: respostaLimite("Muitas tentativas. Aguarde alguns minutos e tente novamente."),
@@ -20,7 +20,7 @@ export const loginLimiter = rateLimit({
 
 export const publicWriteLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  limit: 10,
+  limit: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   handler: respostaLimite("Muitas inscrições enviadas deste endereço. Aguarde alguns minutos."),
@@ -28,7 +28,7 @@ export const publicWriteLimiter = rateLimit({
 
 export const publicReadLimiter = rateLimit({
   windowMs: 60 * 1000,
-  limit: 60,
+  limit: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   handler: respostaLimite("Muitas requisições. Aguarde um minuto e tente novamente."),
